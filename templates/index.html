@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting Recognition</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f7fafc;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e6fffa;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-label {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(72, 187, 120, 0.3);
+        }
+        
+        .submit-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e6fffa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .alert-error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+        
+        .alert-success {
+            background: #c6f6d5;
+            color: #2f855a;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .instructions {
+            background: #ebf8ff;
+            border: 1px solid #bee3f8;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            color: #2b6cb0;
+            margin-top: 0;
+        }
+        
+        .instructions ul {
+            color: #2d3748;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖋️ Handwriting Recognition</h1>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-error">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="/predict" enctype="multipart/form-data" id="uploadForm">
+            <div class="upload-area" id="uploadArea">
+                <label for="file" class="file-label">
+                    📁 Choose Image File
+                </label>
+                <input type="file" id="file" name="file" accept="image/*" required>
+                <div id="fileName" class="file-info"></div>
+                <p>or drag and drop an image here</p>
+            </div>
+            
+            <button type="submit" class="submit-btn" id="submitBtn" disabled>
+                🔍 Analyze Handwriting
+            </button>
+        </form>
+        
+        <div class="instructions">
+            <h3>📋 Instructions</h3>
+            <ul>
+                <li>Upload a clear image of handwritten text</li>
+                <li>Supported formats: JPG, PNG, GIF, BMP</li>
+                <li>Maximum file size: 16MB</li>
+                <li>For best results, use high contrast images with dark text on light background</li>
+                <li>Ensure the handwriting is clearly visible and not blurry</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file');
+        const fileName = document.getElementById('fileName');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadArea = document.getElementById('uploadArea');
+        
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                fileName.style.display = 'block';
+                fileName.innerHTML = `<strong>Selected:</strong> ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                submitBtn.disabled = false;
+            } else {
+                fileName.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        });
+        
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }
+        });
+        
+        // Form submission handling
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            submitBtn.innerHTML = '⏳ Analyzing...';
+            submitBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

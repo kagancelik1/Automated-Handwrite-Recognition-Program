@@ -1,0 +1,6 @@
+venv/
+venv_gpu/
+venv_wsl_gpu/
+__pycache__/
+logs/
+uploads/

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recognition Results - Handwriting Recognition</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .image-section, .text-section {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .image-section h3, .text-section h3 {
+            color: #2d3748;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .uploaded-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e2e8f0;
+        }
+        
+        .predicted-text {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .text-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #718096;
+            margin-top: 5px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .copy-success {
+            background: #c6f6d5 !important;
+            color: #2f855a !important;
+        }
+        
+        .confidence-indicator {
+            background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        .confidence-bar {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            width: 85%; /* You can make this dynamic based on actual confidence */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Recognition Results</h1>
+        
+        <div class="results-section">
+            <div class="image-section">
+                <h3>📸 Uploaded Image</h3>
+                <img src="{{ url_for('uploaded_file', filename=filename) }}" 
+                     alt="Uploaded handwriting image" 
+                     class="uploaded-image">
+            </div>
+            
+            <div class="text-section">
+                <h3>📝 Recognized Text</h3>
+                <div class="predicted-text" id="predictedText">{{ predicted_text }}</div>
+                
+                <div class="text-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ predicted_text|length }}</div>
+                        <div class="stat-label">Characters</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ predicted_text.split()|length }}</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ predicted_text.count('\n') + 1 }}</div>
+                        <div class="stat-label">Lines</div>
+                    </div>
+                    {% if confidence %}
+                    <div class="stat-item">
+                        <div class="stat-number">{{ confidence }}</div>
+                        <div class="stat-label">Confidence</div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                {% if confidence %}
+                <div style="margin-top: 20px;">
+                    <label style="color: #718096; font-size: 0.9em;">Recognition Confidence: {{ confidence }}</label>
+                    <div class="confidence-indicator">
+                        <div class="confidence-bar" style="width: {{ confidence.replace('%', '') }}%;"></div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-secondary" id="copyBtn" onclick="copyText()">
+                📋 Copy Text
+            </button>
+            <a href="{{ url_for('index') }}" class="btn btn-primary">
+                🔄 Analyze Another Image
+            </a>
+            <button class="btn btn-secondary" onclick="downloadText()">
+                💾 Download Text
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function copyText() {
+            const textElement = document.getElementById('predictedText');
+            const text = textElement.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                const copyBtn = document.getElementById('copyBtn');
+                const originalText = copyBtn.innerHTML;
+                
+                copyBtn.innerHTML = '✅ Copied!';
+                copyBtn.classList.add('copy-success');
+                
+                setTimeout(function() {
+                    copyBtn.innerHTML = originalText;
+                    copyBtn.classList.remove('copy-success');
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy text: ', err);
+                alert('Failed to copy text to clipboard');
+            });
+        }
+        
+        function downloadText() {
+            const text = document.getElementById('predictedText').textContent;
+            const element = document.createElement('a');
+            const file = new Blob([text], {type: 'text/plain'});
+            element.href = URL.createObjectURL(file);
+            element.download = 'recognized_text.txt';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+        
+        // Add some animation when page loads
+        window.addEventListener('load', function() {
+            const container = document.querySelector('.container');
+            container.style.opacity = '0';
+            container.style.transform = 'translateY(20px)';
+            
+            setTimeout(function() {
+                container.style.transition = 'all 0.5s ease';
+                container.style.opacity = '1';
+                container.style.transform = 'translateY(0)';
+            }, 100);
+        });
+    </script>
+</body>
+</html>
